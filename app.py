@@ -171,18 +171,21 @@ def analyze_text_with_deepseek(text_content):
         return None
 
     prompt = f"""
-    As a professional financial analyst, analyze the following corporate document.
-    Focus exclusively on comments related to **tariffs, trade duties, and import taxes**.
-    Extract the information and structure your response as a valid JSON object.
-    If a specific piece of information is not mentioned, use `null` or an empty list.
+    As a specialized financial analyst, your task is to analyze the following corporate document.
+    Your focus must be exclusively on comments related to **tariffs, trade duties, and import taxes**.
+
+    **Critical Rule:** You must ignore all general financial metrics (e.g., overall revenue, total orders, EBITA) unless the text explicitly states that tariffs are the cause of the financial impact. If no specific financial data related to tariffs is mentioned, the corresponding fields in your response must be an empty list `[]`.
+
+    Extract the information and structure your response as a valid JSON object. If a specific piece of information is not mentioned, use `null` or an empty list.
 
     JSON Specification:
-    - **company_name**: The company name.
-    - **quarterly_impact**: A list of objects detailing financial impacts for the current quarter. Each object should have "metric", "impact_value", "unit", and "source_quote".
-    - **forward_guidance_impact**: A list of objects with the same structure for future guidance.
-    - **mitigation_strategies**: A list of strings detailing strategies to handle tariffs.
-    - **overall_sentiment**: Your assessment ("Positive", "Neutral", "Negative").
-    - **summary**: A brief, one-paragraph summary of the company's position on tariffs.
+    - **company_name**: The full company name mentioned in the document.
+    - **quarterly_impact**: A list of objects detailing financial impacts **explicitly attributed to tariffs** in the current quarter. Examples: "Tariffs increased costs by $5M," or "Gross margin was impacted by 20 basis points due to import duties." If no such specific financial impact is mentioned, this MUST be an empty list.
+    - **forward_guidance_impact**: A list of objects detailing future financial guidance **explicitly related to tariffs**. If none is mentioned, this MUST be an empty list.
+    - **qualitative_impacts**: A list of strings describing non-financial impacts or general business environment effects due to tariffs. Examples: "Customer project delays due to tariff uncertainty," or "Increased complexity in supply chain planning."
+    - **mitigation_strategies**: A list of strings detailing the specific strategies or actions the company is taking to handle the impact of tariffs.
+    - **overall_sentiment**: Your assessment of the company's sentiment regarding tariffs ("Positive", "Neutral", "Negative"). This should be based only on the tariff-related comments.
+    - **summary**: A brief, one-paragraph summary of the company's position on tariffs, synthesizing ONLY the specific findings. If the document provides few specifics, your summary must state that.
 
     Document Text:
     ---
@@ -229,6 +232,13 @@ def display_tariff_report(company_name, analysis):
 
     def display_impact_table(title, impacts):
         if not impacts:
+            # MODIFICATION: Added a message for when no data is found
+            st.markdown(f"""
+            <div class="report-card">
+                <h3>{title}</h3>
+                <p><i>No specific financial impacts from tariffs were mentioned in the document.</i></p>
+            </div>
+            """, unsafe_allow_html=True)
             return
         if isinstance(impacts, dict):
             impacts = [impacts]
@@ -241,10 +251,8 @@ def display_tariff_report(company_name, analysis):
             'source_quote': 'Source Quote'
         })
 
-        # Generate a clean HTML table from the DataFrame
         table_html = df_display.to_html(index=False, escape=False, border=0)
 
-        # Wrap the generated table in your custom styled div
         full_html = f"""
         <div class="report-card">
             <h3>{title}</h3>
@@ -255,6 +263,16 @@ def display_tariff_report(company_name, analysis):
 
     display_impact_table("Quarterly Financial Impact", analysis.get('quarterly_impact'))
     display_impact_table("Forward Guidance Impact", analysis.get('forward_guidance_impact'))
+
+    # --- START: NEW CODE BLOCK TO DISPLAY QUALITATIVE IMPACTS ---
+    qualitative_impacts = analysis.get('qualitative_impacts')
+    if qualitative_impacts:
+        impacts_html = '<div class="report-card"><h3>Qualitative Impacts</h3><ul>'
+        for impact in qualitative_impacts:
+            impacts_html += f"<li>{html.escape(impact)}</li>"
+        impacts_html += "</ul></div>"
+        st.markdown(impacts_html, unsafe_allow_html=True)
+    # --- END: NEW CODE BLOCK ---
 
     strategies = analysis.get('mitigation_strategies')
     if strategies:
