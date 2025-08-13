@@ -1,0 +1,28 @@
+# Ignore environment variables file
+.env
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Editor directories
+.vscode/
+.idea/
+
+# macOS files
+.DS_Store
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+users.csv
+whitelist.csv
+*.docx
+secrets.toml
+__pycache__/
+*.pyc
