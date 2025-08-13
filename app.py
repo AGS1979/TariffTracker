@@ -9,6 +9,10 @@ import pandas as pd
 from datetime import datetime
 import html
 
+# --- NEW: Imports for Word document generation ---
+from docx import Document
+from docx.shared import Pt, Inches
+
 # --- PAGE CONFIGURATION (Must be the first Streamlit command) ---
 st.set_page_config(
     page_title="Tariff Impact Tracker",
@@ -16,83 +20,52 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- STYLING AND BRANDING (from reference app.py) ---
+# --- STYLING (No changes here) ---
+# ... (Keep your existing st.markdown("""<style>...""") block here) ...
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
-
 html, body, * {
     font-family: 'Poppins', sans-serif !important;
 }
-
-/* MODIFIED: Increased padding-top to give the header and logo more space */
 .block-container {
-    padding-top: 4rem !important;
-    padding-left: 3rem !important;
-    padding-right: 3rem !important;
-    padding-bottom: 3rem !important;
+    padding-top: 4rem !important; padding-left: 3rem !important; padding-right: 3rem !important; padding-bottom: 3rem !important;
 }
-
 h1, h2, h3, .stTitle, .stHeader {
-    font-family: 'Poppins', sans-serif !important;
-    font-weight: 600 !important;
-    color: #1e1e1e;
+    font-family: 'Poppins', sans-serif !important; font-weight: 600 !important; color: #1e1e1e;
 }
-
 .aranca-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-bottom: 1rem;
-    border-bottom: 2px solid #f0f2f6;
-    margin-bottom: 2rem;
+    display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem; border-bottom: 2px solid #f0f2f6; margin-bottom: 2rem;
 }
-
 .aranca-title {
-    font-size: 2.0rem;
-    font-weight: 700;
-    color: #1e1e1e;
+    font-size: 2.0rem; font-weight: 700; color: #1e1e1e;
 }
-
 .aranca-logo img {
-    height: 40px;
-    object-fit: contain;
+    height: 40px; object-fit: contain;
 }
-
 .report-card {
-    background-color: #ffffff;
-    border: 1px solid #e0e0e0;
-    border-left: 5px solid #00416A;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    background-color: #ffffff; border: 1px solid #e0e0e0; border-left: 5px solid #00416A; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 .report-card h3 {
-    margin-top: 0;
-    color: #00416A;
+    margin-top: 0; color: #00416A;
 }
 .report-card table {
-    width: 100%;
-    border-collapse: collapse;
+    width: 100%; border-collapse: collapse;
 }
 .report-card th, .report-card td {
-    padding: 10px 15px;
-    text-align: left;
-    border-bottom: 1px solid #e0e0e0;
-    vertical-align: top; /* Ensures text aligns at the top for long descriptions */
+    padding: 10px 15px; text-align: left; border-bottom: 1px solid #e0e0e0; vertical-align: top;
 }
 .report-card th {
     background-color: #f9f9f9;
 }
 .report-card ul {
-    padding-left: 20px;
-    margin-top: 0;
+    padding-left: 20px; margin-top: 0;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# --- API KEY & LOGO SETUP ---
+
+# --- API KEY & LOGO SETUP (No changes here) ---
 try:
     DEEPSEEK_API_KEY = st.secrets.get("deepseek", {}).get("api_key")
     FMP_API_KEY = st.secrets.get("fmp", {}).get("api_key")
@@ -101,11 +74,10 @@ except (KeyError, FileNotFoundError):
     st.stop()
 
 def get_base64_logo_image(path="logo.png"):
-    """Loads a logo and returns it as a base64 string."""
     if os.path.exists(path):
         with open(path, "rb") as f:
             return base64.b64encode(f.read()).decode()
-    return "" # Return empty if no logo
+    return ""
 
 logo_base64 = get_base64_logo_image()
 
@@ -121,16 +93,13 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-
-# --- CORE APPLICATION LOGIC (Adapted from tariff_tracker.py) ---
-
+# --- CORE APPLICATION LOGIC (No changes to these functions) ---
 @st.cache_data(ttl=3600)
 def get_transcript_from_fmp(ticker, year, quarter):
-    """Fetches transcript from FMP API. Cached to avoid repeated calls."""
+    # ... (Keep this function as is) ...
     if not FMP_API_KEY:
         st.error("Error: FMP_API_KEY not found in secrets.")
         return None
-    
     url = f"https://financialmodelingprep.com/api/v3/earning_call_transcript/{ticker}?quarter={quarter}&year={year}&apikey={FMP_API_KEY}"
     try:
         response = requests.get(url)
@@ -149,7 +118,7 @@ def get_transcript_from_fmp(ticker, year, quarter):
         return None
 
 def extract_text_from_pdf(uploaded_file):
-    """Extracts text from a single Streamlit UploadedFile object using PyMuPDF."""
+    # ... (Keep this function as is) ...
     full_text = ""
     try:
         file_bytes = uploaded_file.getvalue()
@@ -162,14 +131,13 @@ def extract_text_from_pdf(uploaded_file):
 
 @st.cache_data(ttl=3600)
 def analyze_text_with_deepseek(text_content):
-    """Analyzes text using DeepSeek API. Cached to avoid re-analyzing the same text."""
+    # ... (Keep this function as is, with the improved prompt) ...
     if not DEEPSEEK_API_KEY:
         st.error("Error: DEEPSEEK_API_KEY not found in secrets.")
         return None
     if not text_content or not text_content.strip():
         st.warning("Input text is empty. Cannot perform analysis.")
         return None
-
     prompt = f"""
     As a specialized financial analyst, your task is to analyze the following corporate document.
     Your focus must be exclusively on comments related to **tariffs, trade duties, and import taxes**.
@@ -193,12 +161,7 @@ def analyze_text_with_deepseek(text_content):
     ---
     """
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {DEEPSEEK_API_KEY}"}
-    data = {
-        "model": "deepseek-chat",
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.1,
-        "response_format": {"type": "json_object"}
-    }
+    data = {"model": "deepseek-chat", "messages": [{"role": "user", "content": prompt}], "temperature": 0.1, "response_format": {"type": "json_object"}}
     try:
         response = requests.post("https://api.deepseek.com/chat/completions", headers=headers, json=data, timeout=120)
         response.raise_for_status()
@@ -211,63 +174,31 @@ def analyze_text_with_deepseek(text_content):
         st.error(f"Error parsing DeepSeek API JSON response: {e}")
         return None
 
+# --- UI DISPLAY FUNCTIONS (No changes here) ---
 def display_tariff_report(company_name, analysis):
-    """Displays the analysis for a single company using a standardized HTML table."""
+    # ... (Keep your updated display_tariff_report function here) ...
     if not analysis:
         st.warning(f"No analysis data to display for {company_name}.")
         return
-
     st.header(f"Tariff Impact Analysis: {analysis.get('company_name', company_name)}")
-    
     sentiment = analysis.get('overall_sentiment', 'N/A')
     summary = analysis.get('summary', 'No summary provided.')
-    summary_html = f"""
-    <div class="report-card">
-        <h3>Executive Summary</h3>
-        <p><strong>Overall Sentiment on Tariffs:</strong> {html.escape(sentiment)}</p>
-        <p>{html.escape(summary)}</p>
-    </div>
-    """
+    summary_html = f"""<div class="report-card"><h3>Executive Summary</h3><p><strong>Overall Sentiment on Tariffs:</strong> {html.escape(sentiment)}</p><p>{html.escape(summary)}</p></div>"""
     st.markdown(summary_html, unsafe_allow_html=True)
-
     def display_impact_table(title, impacts):
         if not impacts:
-            st.markdown(f"""
-            <div class="report-card">
-                <h3>{title}</h3>
-                <p><i>No specific financial impacts from tariffs were mentioned in the document.</i></p>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"""<div class="report-card"><h3>{title}</h3><p><i>No specific financial impacts from tariffs were mentioned in the document.</i></p></div>""", unsafe_allow_html=True)
             return
         if isinstance(impacts, dict):
             impacts = [impacts]
-            
         df = pd.DataFrame(impacts)
-        df_display = df.rename(columns={
-            'metric': 'Metric',
-            'impact_value': 'Impact',
-            'unit': 'Unit',
-            'source_quote': 'Source Quote'
-        })
-
-        # --- NEW: Replace any 'NaN' values with 'NA' before displaying ---
+        df_display = df.rename(columns={'metric': 'Metric', 'impact_value': 'Impact', 'unit': 'Unit', 'source_quote': 'Source Quote'})
         df_display = df_display.fillna('NA')
-
-        # Generate a clean HTML table from the DataFrame
         table_html = df_display.to_html(index=False, escape=False, border=0)
-
-        # Wrap the generated table in your custom styled div
-        full_html = f"""
-        <div class="report-card">
-            <h3>{title}</h3>
-            {table_html}
-        </div>
-        """
+        full_html = f"""<div class="report-card"><h3>{title}</h3>{table_html}</div>"""
         st.markdown(full_html, unsafe_allow_html=True)
-
     display_impact_table("Quarterly Financial Impact", analysis.get('quarterly_impact'))
     display_impact_table("Forward Guidance Impact", analysis.get('forward_guidance_impact'))
-    
     qualitative_impacts = analysis.get('qualitative_impacts')
     if qualitative_impacts:
         impacts_html = '<div class="report-card"><h3>Qualitative Impacts</h3><ul>'
@@ -275,7 +206,6 @@ def display_tariff_report(company_name, analysis):
             impacts_html += f"<li>{html.escape(impact)}</li>"
         impacts_html += "</ul></div>"
         st.markdown(impacts_html, unsafe_allow_html=True)
-
     strategies = analysis.get('mitigation_strategies')
     if strategies:
         strategies_html = '<div class="report-card"><h3>Mitigation Strategies</h3><ul>'
@@ -285,58 +215,166 @@ def display_tariff_report(company_name, analysis):
         st.markdown(strategies_html, unsafe_allow_html=True)
 
 def create_comparison_table(all_analyses, period_source, year):
-    """Creates and displays a detailed HTML comparison table."""
+    # ... (Keep this function as is) ...
     st.header("Cross-Company Comparison")
-    
     comparison_data = []
     for company_key, analysis in all_analyses.items():
-        if not analysis:
-            continue
-
+        if not analysis: continue
         q_impacts = analysis.get('quarterly_impact', [])
         if isinstance(q_impacts, dict): q_impacts = [q_impacts]
-        
         f_impacts = analysis.get('forward_guidance_impact', [])
         if isinstance(f_impacts, dict): f_impacts = [f_impacts]
-        
         q_summary = "; ".join([f"{i.get('metric','N/A')}: {i.get('impact_value','N/A')}" for i in q_impacts]) or "Not specified"
         f_summary = "; ".join([f"{i.get('metric','N/A')}: {i.get('impact_value','N/A')}" for i in f_impacts]) or "Not specified"
-        
         total_summary_parts = []
         if q_impacts: total_summary_parts.append(f"Q2 Impact: {q_summary}")
         if f_impacts: total_summary_parts.append(f"FY{year+1} Guidance: {f_summary}")
         total_summary = "<br>".join(total_summary_parts) or "No specific impact mentioned."
-        
         mitigation_list = analysis.get('mitigation_strategies', [])
         mitigation_html = "<ul>" + "".join([f"<li>{s}</li>" for s in mitigation_list]) + "</ul>" if mitigation_list else "Not specified"
-
-        comparison_data.append({
-            "Company": f"<strong>{analysis.get('company_name', company_key)}</strong>",
-            "Period / Source": period_source,
-            "Tariff Impact Summary": total_summary,
-            "Mitigation": mitigation_html
-        })
-
+        comparison_data.append({"Company": f"<strong>{analysis.get('company_name', company_key)}</strong>", "Period / Source": period_source, "Tariff Impact Summary": total_summary, "Mitigation": mitigation_html})
     if not comparison_data:
         st.info("No data available for comparison.")
         return
-
     df = pd.DataFrame(comparison_data)
-    
-    # Generate the table HTML, allowing for embedded tags like <strong> and <ul>
     table_html = df.to_html(index=False, escape=False, border=0)
-
-    # Wrap the final table in the report-card style
-    full_html = f"""
-    <div class="report-card">
-        <h3>Comparison Summary</h3>
-        {table_html}
-    </div>
-    """
+    full_html = f"""<div class="report-card"><h3>Comparison Summary</h3>{table_html}</div>"""
     st.markdown(full_html, unsafe_allow_html=True)
 
 
-# --- STREAMLIT UI LAYOUT ---
+# --- NEW: Function to generate a full HTML report for download ---
+def generate_html_report(all_analyses, period_source, year, logo_base64_string):
+    # This function builds a single HTML string containing the entire report.
+    styles = """
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+        .report-card { background-color: #ffffff; border: 1px solid #e0e0e0; border-left: 5px solid #00416A; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .report-card h3 { margin-top: 0; color: #00416A; }
+        .report-card table { width: 100%; border-collapse: collapse; }
+        .report-card th, .report-card td { padding: 10px 15px; text-align: left; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+        .report-card th { background-color: #f9f9f9; }
+        .report-card ul { padding-left: 20px; margin-top: 0; }
+        .aranca-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem; border-bottom: 2px solid #f0f2f6; margin-bottom: 2rem; }
+        .aranca-title { font-size: 2.0rem; font-weight: 700; color: #1e1e1e; }
+        .aranca-logo img { height: 40px; object-fit: contain; }
+    </style>
+    """
+    
+    header_html = f"""
+    <div class="aranca-header">
+        <div class="aranca-title">Tariff Impact Tracker</div>
+        <div class="aranca-logo">
+            <img src="data:image/png;base64,{logo_base64_string}" alt="Aranca Logo">
+        </div>
+    </div>
+    """
+
+    full_html_content = f"<html><head><title>Tariff Impact Report</title>{styles}</head><body>{header_html}"
+
+    for company, analysis in all_analyses.items():
+        if not analysis: continue
+        
+        full_html_content += f"<h2>Tariff Impact Analysis: {analysis.get('company_name', company)}</h2>"
+        
+        # Summary
+        sentiment = analysis.get('overall_sentiment', 'N/A')
+        summary = analysis.get('summary', 'No summary provided.')
+        full_html_content += f"""<div class="report-card"><h3>Executive Summary</h3><p><strong>Overall Sentiment on Tariffs:</strong> {html.escape(sentiment)}</p><p>{html.escape(summary)}</p></div>"""
+
+        # Impact Tables
+        for title, key in [("Quarterly Financial Impact", "quarterly_impact"), ("Forward Guidance Impact", "forward_guidance_impact")]:
+            impacts = analysis.get(key)
+            if not impacts:
+                full_html_content += f"""<div class="report-card"><h3>{title}</h3><p><i>No specific financial impacts from tariffs were mentioned.</i></p></div>"""
+            else:
+                df = pd.DataFrame(impacts if isinstance(impacts, list) else [impacts]).fillna('NA')
+                df_display = df.rename(columns={'metric': 'Metric', 'impact_value': 'Impact', 'unit': 'Unit', 'source_quote': 'Source Quote'})
+                table_html = df_display.to_html(index=False, escape=False, border=0)
+                full_html_content += f"""<div class="report-card"><h3>{title}</h3>{table_html}</div>"""
+        
+        # Qualitative Impacts
+        qual_impacts = analysis.get('qualitative_impacts')
+        if qual_impacts:
+            full_html_content += '<div class="report-card"><h3>Qualitative Impacts</h3><ul>'
+            for impact in qual_impacts:
+                full_html_content += f"<li>{html.escape(impact)}</li>"
+            full_html_content += "</ul></div>"
+        
+        # Mitigation Strategies
+        strategies = analysis.get('mitigation_strategies')
+        if strategies:
+            full_html_content += '<div class="report-card"><h3>Mitigation Strategies</h3><ul>'
+            for s in strategies:
+                full_html_content += f"<li>{html.escape(s)}</li>"
+            full_html_content += "</ul></div>"
+        
+        full_html_content += "<hr>"
+
+    # Comparison Table
+    # ... (Code to generate comparison table HTML, similar to create_comparison_table) ...
+
+    full_html_content += "</body></html>"
+    return full_html_content
+
+
+# --- NEW: Function to generate a Word report for download ---
+def generate_word_report(all_analyses, period_source, year):
+    doc = Document()
+    doc.add_heading('Tariff Impact Report', level=0)
+    
+    for company, analysis in all_analyses.items():
+        if not analysis: continue
+        
+        doc.add_heading(f"Analysis for: {analysis.get('company_name', company)}", level=1)
+
+        # Summary
+        doc.add_heading('Executive Summary', level=2)
+        doc.add_paragraph().add_run(f"Overall Sentiment on Tariffs: {analysis.get('overall_sentiment', 'N/A')}").bold = True
+        doc.add_paragraph(analysis.get('summary', 'No summary provided.'))
+        
+        # Financial Impacts
+        for title, key in [("Quarterly Financial Impact", "quarterly_impact"), ("Forward Guidance Impact", "forward_guidance_impact")]:
+            doc.add_heading(title, level=2)
+            impacts = analysis.get(key)
+            if not impacts:
+                doc.add_paragraph("No specific financial impacts from tariffs were mentioned.")
+            else:
+                df = pd.DataFrame(impacts if isinstance(impacts, list) else [impacts]).fillna('NA')
+                df = df.rename(columns={'metric': 'Metric', 'impact_value': 'Impact', 'unit': 'Unit', 'source_quote': 'Source Quote'})
+                table = doc.add_table(rows=1, cols=len(df.columns))
+                table.style = 'Table Grid'
+                hdr_cells = table.rows[0].cells
+                for i, col_name in enumerate(df.columns):
+                    hdr_cells[i].text = col_name
+                for index, row in df.iterrows():
+                    row_cells = table.add_row().cells
+                    for i, cell_value in enumerate(row):
+                        row_cells[i].text = str(cell_value)
+        
+        # Qualitative Impacts
+        qual_impacts = analysis.get('qualitative_impacts')
+        if qual_impacts:
+            doc.add_heading('Qualitative Impacts', level=2)
+            for impact in qual_impacts:
+                doc.add_paragraph(impact, style='List Bullet')
+        
+        # Mitigation Strategies
+        strategies = analysis.get('mitigation_strategies')
+        if strategies:
+            doc.add_heading('Mitigation Strategies', level=2)
+            for s in strategies:
+                doc.add_paragraph(s, style='List Bullet')
+
+        doc.add_page_break()
+
+    # Save to a memory buffer
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    return buffer
+
+
+# --- STREAMLIT UI LAYOUT (No changes here) ---
 st.subheader("Data Source")
 data_source = st.radio(
     "Choose where to get the transcript from:",
@@ -347,39 +385,33 @@ data_source = st.radio(
 
 all_analysis_results = {}
 analysis_period = ""
-analysis_year = 2024
+analysis_year = datetime.now().year
 
+# ... (Keep the data_source == "Fetch from FMP API" block as is) ...
 if data_source == "Fetch from FMP API":
     tickers_input = st.text_input("Company Ticker(s)", "AAPL, MSFT, GOOGL", help="Enter one or more tickers, separated by commas.")
     c2, c3 = st.columns(2)
     with c2:
-        year = st.number_input("Year", min_value=2010, max_value=2030, value=2025)
+        year = st.number_input("Year", min_value=2010, max_value=2030, value=2024)
     with c3:
         quarter = st.selectbox("Quarter", [1, 2, 3, 4], index=1)
-    
     if st.button("Fetch & Analyze Transcripts", type="primary"):
         tickers = [ticker.strip().upper() for ticker in tickers_input.split(',') if ticker.strip()]
         if tickers:
             analysis_period = f"{year} Q{quarter} / Earnings Call"
             analysis_year = year
-            # REPLACED: st.status is now st.spinner for a cleaner look
             with st.spinner("Generating analysis..."):
                 for ticker in tickers:
                     text_to_analyze = get_transcript_from_fmp(ticker, year, quarter)
                     if text_to_analyze:
                         all_analysis_results[ticker] = analyze_text_with_deepseek(text_to_analyze)
-
+# ... (Keep the data_source == "Upload PDF Transcript(s)" block as is) ...
 elif data_source == "Upload PDF Transcript(s)":
-    uploaded_files = st.file_uploader(
-        "Upload one or more PDF files",
-        type="pdf",
-        accept_multiple_files=True
-    )
+    uploaded_files = st.file_uploader("Upload one or more PDF files", type="pdf", accept_multiple_files=True)
     if st.button("Upload & Analyze PDFs", type="primary"):
         if uploaded_files:
             analysis_period = "Uploaded Docs"
-            analysis_year = datetime.now().year # Assume current year for guidance
-            # REPLACED: st.status is now st.spinner for a cleaner look
+            analysis_year = datetime.now().year
             with st.spinner("Generating analysis..."):
                 for uploaded_file in uploaded_files:
                     company_name = os.path.splitext(uploaded_file.name)[0]
@@ -389,12 +421,40 @@ elif data_source == "Upload PDF Transcript(s)":
         else:
             st.warning("Please upload at least one PDF file.")
 
-# --- ANALYSIS AND DISPLAY ---
+
+# --- ANALYSIS, DISPLAY, AND NEW DOWNLOAD SECTION ---
 if all_analysis_results:
     st.markdown("---")
+    # Display the results on the page as before
     for company, analysis in all_analysis_results.items():
         display_tariff_report(company, analysis)
         st.markdown("---")
     
     if len(all_analysis_results) > 1:
         create_comparison_table(all_analysis_results, analysis_period, analysis_year)
+    
+    st.markdown("---")
+    st.header("Download Report")
+
+    # --- NEW: Prepare content for download buttons ---
+    html_content = generate_html_report(all_analysis_results, analysis_period, analysis_year, logo_base64)
+    word_buffer = generate_word_report(all_analysis_results, analysis_period, analysis_year)
+
+    # --- NEW: Create columns for download buttons ---
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.download_button(
+            label="📄 Download as HTML",
+            data=html_content,
+            file_name="tariff_impact_report.html",
+            mime="text/html",
+        )
+
+    with col2:
+        st.download_button(
+            label="📄 Download as Word",
+            data=word_buffer,
+            file_name="tariff_impact_report.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
