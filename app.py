@@ -232,7 +232,6 @@ def display_tariff_report(company_name, analysis):
 
     def display_impact_table(title, impacts):
         if not impacts:
-            # MODIFICATION: Added a message for when no data is found
             st.markdown(f"""
             <div class="report-card">
                 <h3>{title}</h3>
@@ -251,8 +250,13 @@ def display_tariff_report(company_name, analysis):
             'source_quote': 'Source Quote'
         })
 
+        # --- NEW: Replace any 'NaN' values with 'NA' before displaying ---
+        df_display = df_display.fillna('NA')
+
+        # Generate a clean HTML table from the DataFrame
         table_html = df_display.to_html(index=False, escape=False, border=0)
 
+        # Wrap the generated table in your custom styled div
         full_html = f"""
         <div class="report-card">
             <h3>{title}</h3>
@@ -263,8 +267,7 @@ def display_tariff_report(company_name, analysis):
 
     display_impact_table("Quarterly Financial Impact", analysis.get('quarterly_impact'))
     display_impact_table("Forward Guidance Impact", analysis.get('forward_guidance_impact'))
-
-    # --- START: NEW CODE BLOCK TO DISPLAY QUALITATIVE IMPACTS ---
+    
     qualitative_impacts = analysis.get('qualitative_impacts')
     if qualitative_impacts:
         impacts_html = '<div class="report-card"><h3>Qualitative Impacts</h3><ul>'
@@ -272,7 +275,6 @@ def display_tariff_report(company_name, analysis):
             impacts_html += f"<li>{html.escape(impact)}</li>"
         impacts_html += "</ul></div>"
         st.markdown(impacts_html, unsafe_allow_html=True)
-    # --- END: NEW CODE BLOCK ---
 
     strategies = analysis.get('mitigation_strategies')
     if strategies:
