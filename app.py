@@ -166,41 +166,89 @@ def analyze_text_with_deepseek(text_content):
 
 # --- UI DISPLAY & FILE GENERATION FUNCTIONS (No changes in this section) ---
 def display_tariff_report(company_name, analysis):
+    """Displays the analysis for a single company using a standardized HTML table."""
     if not analysis:
         st.warning(f"No analysis data to display for {company_name}.")
         return
+
     st.header(f"Tariff Impact Analysis: {analysis.get('company_name', company_name)}")
+    
     sentiment = analysis.get('overall_sentiment', 'N/A')
     summary = analysis.get('summary', 'No summary provided.')
-    summary_html = f"""<div class="report-card"><h3>Executive Summary</h3><p><strong>Overall Sentiment on Tariffs:</strong> {html.escape(sentiment)}</p><p>{html.escape(summary)}</p></div>"""
+    summary_html = f"""
+    <div class="report-card">
+        <h3>Executive Summary</h3>
+        <p><strong>Overall Sentiment on Tariffs:</strong> {html.escape(sentiment)}</p>
+        <p>{html.escape(summary)}</p>
+    </div>
+    """
     st.markdown(summary_html, unsafe_allow_html=True)
+
     def display_impact_table(title, impacts):
         if not impacts:
-            st.markdown(f"""<div class="report-card"><h3>{title}</h3><p><i>No specific financial impacts from tariffs were mentioned in the document.</i></p></div>""", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="report-card">
+                <h3>{title}</h3>
+                <p><i>No specific financial impacts from tariffs were mentioned in the document.</i></p>
+            </div>
+            """, unsafe_allow_html=True)
             return
         if isinstance(impacts, dict):
             impacts = [impacts]
+            
         df = pd.DataFrame(impacts)
-        df_display = df.rename(columns={'metric': 'Metric', 'impact_value': 'Impact', 'unit': 'Unit', 'source_quote': 'Source Quote'})
+        df_display = df.rename(columns={
+            'metric': 'Metric',
+            'impact_value': 'Impact',
+            'unit': 'Unit',
+            'source_quote': 'Source Quote'
+        })
         df_display = df_display.fillna('NA')
         table_html = df_display.to_html(index=False, escape=False, border=0)
-        full_html = f"""<div class="report-card"><h3>{title}</h3>{table_html}</div>"""
+        full_html = f"""
+        <div class="report-card">
+            <h3>{title}</h3>
+            {table_html}
+        </div>
+        """
         st.markdown(full_html, unsafe_allow_html=True)
+
     display_impact_table("Quarterly Financial Impact", analysis.get('quarterly_impact'))
     display_impact_table("Forward Guidance Impact", analysis.get('forward_guidance_impact'))
+
+    # MODIFIED: Display Qualitative Impacts as a paragraph
     qualitative_impacts = analysis.get('qualitative_impacts')
     if qualitative_impacts:
-        impacts_html = '<div class="report-card"><h3>Qualitative Impacts</h3><ul>'
-        for impact in qualitative_impacts:
-            impacts_html += f"<li>{html.escape(impact)}</li>"
-        impacts_html += "</ul></div>"
+        # Join list items into a single paragraph
+        paragraph_text = " ".join(qualitative_impacts)
+        impacts_html = f"""
+        <div class="report-card">
+            <h3>Qualitative Impacts</h3>
+            <p>{html.escape(paragraph_text)}</p>
+        </div>
+        """
         st.markdown(impacts_html, unsafe_allow_html=True)
+
+    # MODIFIED: Display Mitigation Strategies as a natural language sentence
     strategies = analysis.get('mitigation_strategies')
     if strategies:
-        strategies_html = '<div class="report-card"><h3>Mitigation Strategies</h3><ul>'
-        for strategy in strategies:
-            strategies_html += f"<li>{html.escape(strategy)}</li>"
-        strategies_html += "</ul></div>"
+        strategy_text = ""
+        # Join the list of strategies into a flowing sentence
+        if len(strategies) == 1:
+            strategy_text = strategies[0]
+        elif len(strategies) == 2:
+            strategy_text = f"{strategies[0]} and {strategies[1]}"
+        else:
+            strategy_text = ", ".join(strategies[:-1]) + f", and {strategies[-1]}"
+        
+        full_paragraph = f"To manage these impacts, the company is employing several strategies, including {strategy_text}."
+        
+        strategies_html = f"""
+        <div class="report-card">
+            <h3>Mitigation Strategies</h3>
+            <p>{html.escape(full_paragraph)}</p>
+        </div>
+        """
         st.markdown(strategies_html, unsafe_allow_html=True)
 
 def create_comparison_table(all_analyses, period_source, year):
