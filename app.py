@@ -333,7 +333,7 @@ if data_source == "Fetch from FMP API":
     tickers_input = st.text_input("Company Ticker(s)", "AAPL, MSFT, GOOGL", help="Enter one or more tickers, separated by commas.")
     c2, c3 = st.columns(2)
     with c2:
-        year = st.number_input("Year", min_value=2010, max_value=2030, value=2024)
+        year = st.number_input("Year", min_value=2010, max_value=2030, value=2025)
     with c3:
         quarter = st.selectbox("Quarter", [1, 2, 3, 4], index=1)
     
@@ -342,13 +342,12 @@ if data_source == "Fetch from FMP API":
         if tickers:
             analysis_period = f"{year} Q{quarter} / Earnings Call"
             analysis_year = year
-            with st.status(f"Analyzing transcripts for {len(tickers)} companies...", expanded=True) as status:
-                for i, ticker in enumerate(tickers):
-                    status.update(label=f"Processing {ticker} ({i+1}/{len(tickers)})...")
+            # REPLACED: st.status is now st.spinner for a cleaner look
+            with st.spinner("Generating analysis..."):
+                for ticker in tickers:
                     text_to_analyze = get_transcript_from_fmp(ticker, year, quarter)
                     if text_to_analyze:
                         all_analysis_results[ticker] = analyze_text_with_deepseek(text_to_analyze)
-                status.update(label="Analysis complete!", state="complete")
 
 elif data_source == "Upload PDF Transcript(s)":
     uploaded_files = st.file_uploader(
@@ -360,14 +359,13 @@ elif data_source == "Upload PDF Transcript(s)":
         if uploaded_files:
             analysis_period = "Uploaded Docs"
             analysis_year = datetime.now().year # Assume current year for guidance
-            with st.status(f"Analyzing {len(uploaded_files)} PDF(s)...", expanded=True) as status:
-                for i, uploaded_file in enumerate(uploaded_files):
+            # REPLACED: st.status is now st.spinner for a cleaner look
+            with st.spinner("Generating analysis..."):
+                for uploaded_file in uploaded_files:
                     company_name = os.path.splitext(uploaded_file.name)[0]
-                    status.update(label=f"Processing {company_name} ({i+1}/{len(uploaded_files)})...")
-                    text_to_analyze = extract_text_from_pdf(uploaded_file)
+                    text_to_analyze = extract_text_from__pdf(uploaded_file)
                     if text_to_analyze:
                         all_analysis_results[company_name] = analyze_text_with_deepseek(text_to_analyze)
-                status.update(label="Analysis complete!", state="complete")
         else:
             st.warning("Please upload at least one PDF file.")
 
