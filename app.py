@@ -209,7 +209,7 @@ def analyze_text_with_deepseek(text_content):
         return None
 
 def display_tariff_report(company_name, analysis):
-    """Displays the analysis for a single company."""
+    """Displays the analysis for a single company using a standardized HTML table."""
     if not analysis:
         st.warning(f"No analysis data to display for {company_name}.")
         return
@@ -233,24 +233,25 @@ def display_tariff_report(company_name, analysis):
         if isinstance(impacts, dict):
             impacts = [impacts]
             
-        table_html = f'<div class="report-card"><h3>{title}</h3><table><thead><tr><th>Metric</th><th>Impact</th><th>Unit</th><th>Source Quote</th></tr></thead><tbody>'
-        for item in impacts:
-            # FIX: Escape all data before inserting into HTML to prevent rendering issues
-            metric = html.escape(str(item.get('metric', 'N/A')))
-            impact_value = html.escape(str(item.get('impact_value', 'N/A')))
-            unit = html.escape(str(item.get('unit', 'N/A')))
-            source_quote = html.escape(str(item.get('source_quote', 'N/A')))
-            
-            table_html += f"""
-            <tr>
-                <td>{metric}</td>
-                <td>{impact_value}</td>
-                <td>{unit}</td>
-                <td><em>"{source_quote}"</em></td>
-            </tr>
-            """
-        table_html += "</tbody></table></div>"
-        st.markdown(table_html, unsafe_allow_html=True)
+        df = pd.DataFrame(impacts)
+        df_display = df.rename(columns={
+            'metric': 'Metric',
+            'impact_value': 'Impact',
+            'unit': 'Unit',
+            'source_quote': 'Source Quote'
+        })
+
+        # Generate a clean HTML table from the DataFrame
+        table_html = df_display.to_html(index=False, escape=False, border=0)
+
+        # Wrap the generated table in your custom styled div
+        full_html = f"""
+        <div class="report-card">
+            <h3>{title}</h3>
+            {table_html}
+        </div>
+        """
+        st.markdown(full_html, unsafe_allow_html=True)
 
     display_impact_table("Quarterly Financial Impact", analysis.get('quarterly_impact'))
     display_impact_table("Forward Guidance Impact", analysis.get('forward_guidance_impact'))
@@ -293,8 +294,6 @@ def create_comparison_table(all_analyses, period_source, year):
             "Company": f"<strong>{analysis.get('company_name', company_key)}</strong>",
             "Period / Source": period_source,
             "Tariff Impact Summary": total_summary,
-            f"Q2 {year} Tariff Impact": q_summary,
-            f"FY{year+1} Guidance Tariff Impact": f_summary,
             "Mitigation": mitigation_html
         })
 
@@ -304,8 +303,10 @@ def create_comparison_table(all_analyses, period_source, year):
 
     df = pd.DataFrame(comparison_data)
     
-    table_html = df.to_html(index=False, escape=False, border=0, classes="report-card-table")
+    # Generate the table HTML, allowing for embedded tags like <strong> and <ul>
+    table_html = df.to_html(index=False, escape=False, border=0)
 
+    # Wrap the final table in the report-card style
     full_html = f"""
     <div class="report-card">
         <h3>Comparison Summary</h3>
