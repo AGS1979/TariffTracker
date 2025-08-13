@@ -363,7 +363,7 @@ elif data_source == "Upload PDF Transcript(s)":
             with st.spinner("Generating analysis..."):
                 for uploaded_file in uploaded_files:
                     company_name = os.path.splitext(uploaded_file.name)[0]
-                    text_to_analyze = extract_text_from__pdf(uploaded_file)
+                    text_to_analyze = extract_text_from_pdf(uploaded_file)
                     if text_to_analyze:
                         all_analysis_results[company_name] = analyze_text_with_deepseek(text_to_analyze)
         else:
